@@ -37,7 +37,7 @@ class Engine {
 
   // Current composed word, UTF-8 NFC.
   std::string preedit() const;
-  // Keys exactly as the user typed them (after tone/mark undo), UTF-8.
+  // Keys exactly as pressed, UTF-8 ("ass" stays "ass"); after a Backspace: the remaining keys.
   std::string raw_text() const;
   // Final text for the word (raw keys if spellcheck rejects it); resets the word.
   std::string commit_text();

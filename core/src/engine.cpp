@@ -8,7 +8,8 @@ namespace sentype {
 struct Engine::Impl {
   Config cfg;
   WordState state;
-  std::vector<RawKey> raw;
+  std::vector<RawKey> raw;     // keys as interpreted (an undone mark key is dropped)
+  std::u32string typed;        // every key exactly as pressed (for restore / Escape)
   bool edited = false;  // backspace used: the user shaped the word, never restore it
 
   explicit Impl(const Config& c) : cfg(c), state(c) {}
@@ -19,6 +20,7 @@ struct Engine::Impl {
   }
   void clear() {
     raw.clear();
+    typed.clear();
     state.clear();
     edited = false;
   }
@@ -27,7 +29,7 @@ struct Engine::Impl {
   }
   std::string raw_text() const {
     std::string s;
-    for (const RawKey& k : raw) append_utf8(s, k.ch);
+    for (char32_t ch : typed) append_utf8(s, ch);
     return s;
   }
   bool is_word_key(char32_t ch) const {
@@ -52,6 +54,7 @@ bool Engine::feed(char32_t ch) {
   if (!m.is_word_key(ch)) return false;
   const RawKey key{ch, false};
   const Step st = m.state.push(key, static_cast<int>(m.raw.size()));
+  if (st.act != Act::Reject) m.typed.push_back(ch);
   switch (st.act) {
     case Act::Reject:
       return false;
@@ -81,6 +84,8 @@ bool Engine::backspace() {
     kept.push_back(m.raw[i]);
   }
   m.raw = std::move(kept);
+  m.typed.clear();  // after an edit the remaining keys are what the user sees: restore those
+  for (const RawKey& k : m.raw) m.typed.push_back(k.ch);
   m.edited = true;
   m.rebuild();
   if (m.raw.empty()) m.edited = false;

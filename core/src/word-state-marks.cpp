@@ -1,4 +1,5 @@
 // Vowel diacritics: circumflex (â ê ô), breve (ă), horn (ơ ư), incl. Telex "w".
+#include "syllable-validator.hpp"
 #include "word-state.hpp"
 
 namespace sentype {
@@ -59,12 +60,21 @@ Step WordState::add_mark(const RawKey& k, int idx, std::u32string_view allowed, 
         first = second = i;
         break;
       }
+      if (a.base == U'u' && a.mod == Mod::None && b.base == U'u' && b.mod == Mod::None) {
+        first = second = i;  // "uu" -> "ưu" (hưu, cứu), not "uư"
+        break;
+      }
     }
   }
+  const Letters before = letters_;
   for (size_t i = first; i <= second; ++i) {
     if (letters_[i].mod != Mod::None) continue;
     letters_[i].mod = mod_for(letters_[i].base, kind);
     letters_[i].mod_key = idx;
+  }
+  if (!nucleus_viable(letters_)) {  // e.g. "oe"+o -> "ôe": not Vietnamese, keep the key as a letter
+    letters_ = before;
+    return fallback(k, idx);
   }
   own(idx, static_cast<int>(first));
   return {Act::Mark, -1};

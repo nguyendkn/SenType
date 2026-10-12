@@ -68,12 +68,19 @@ const std::vector<Case> kCases = {
     {T, M, "asf", "à", "à"},
     {T, M, "asz", "a", "a"},
     // Undo by repeating the key.
-    {T, M, "ass", "as", "as"},
-    {T, M, "aaa", "aa", "aa"},
-    {T, M, "ddd", "dd", "dd"},
-    {T, M, "oww", "ow", "ow"},
-    {T, M, "ww", "w", "w"},
-    {T, M, "vieesst", "viêst", "vieest"},
+    // Repeating a mark key cancels it in the preedit; an invalid word restores every key pressed
+    // ("class" stays "class", not "clas").
+    {T, M, "ass", "as", "ass"},
+    {T, M, "class", "clas", "class"},
+    {T, M, "access", "acces", "access"},
+    {T, M, "booongs", "boóng", "boóng"},  // oo + third o cancels the circumflex
+    {T, M, "khoeo", "khoeo", "khoeo"},     // o after "oe" is a plain letter, not "khôe"
+    {T, M, "huuw", "hưu", "hưu"},          // horn goes on the first u
+    {T, M, "aaa", "aa", "aaa"},
+    {T, M, "ddd", "dd", "ddd"},
+    {T, M, "oww", "ow", "oww"},
+    {T, M, "ww", "w", "ww"},
+    {T, M, "vieesst", "viêst", "vieesst"},
     // Backspace: remove the last letter, keep tone.
     {T, M, "Vieejt<", "Việ", "Việ"},
     {T, M, "nguwowif<", "ngườ", "ngườ"},
@@ -105,9 +112,9 @@ const std::vector<Case> kCases = {
     {V, M, "o7", "ơ", "ơ"},
     {V, M, "u7", "ư", "ư"},
     {V, M, "a1", "á", "á"},
-    {V, M, "a11", "a1", "a1"},
-    {V, M, "a66", "a6", "a6"},
-    {V, M, "d99", "d9", "d9"},
+    {V, M, "a11", "a1", "a11"},
+    {V, M, "a66", "a6", "a66"},
+    {V, M, "d99", "d9", "d99"},
     {V, M, "a12", "à", "à"},
     {V, M, "Viet65", "Việt", "Việt"},
     {V, M, "Vie6t5<", "Việ", "Việ"},

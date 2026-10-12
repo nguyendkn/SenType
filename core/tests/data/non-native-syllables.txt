@@ -1,0 +1,20 @@
+# Entries of the hunspell vi_VN list that are NOT native Vietnamese syllables, so they are
+# excluded from the ground truth (they violate Vietnamese phonotactics by design).
+# One word per line, '#' starts a comment. Reviewed by hand against all 6605 dictionary entries.
+# multi-syllable words
+basoi
+email
+internet
+intranet
+palăng
+tivi
+# foreign spellings / abbreviations
+gen
+gip
+gram
+ka
+têt
+tout
+v
+web
+xit
