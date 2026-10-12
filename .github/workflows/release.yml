@@ -1,0 +1,178 @@
+name: release
+
+# Tag push (v<MAJOR.MINOR>.<YYYYMMDD><INDEX>, made by scripts/tag.sh) builds the three installers and publishes a
+# GitHub Release. workflow_dispatch builds + checksums everything but never publishes (dry run).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions: {}  # each job grants itself what it needs; only `publish` can write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:  # tag -> version; refuses tags that do not match VERSION + the tag format
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - id: v
+        shell: bash
+        run: |
+          base="$(tr -d '[:space:]' < VERSION)"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            re='^v([0-9]+\.[0-9]+)\.([0-9]{8}[0-9]+)$'
+            [[ "$GITHUB_REF_NAME" =~ $re ]] || { echo "::error::tag '$GITHUB_REF_NAME' is not v<MAJOR.MINOR>.<YYYYMMDD><INDEX>"; exit 1; }
+            [ "${BASH_REMATCH[1]}" = "$base" ] || { echo "::error::tag $GITHUB_REF_NAME does not match VERSION file ($base)"; exit 1; }
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="$base.$(date -u +%Y%m%d)0"   # dry run
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Building SenType $version" >> "$GITHUB_STEP_SUMMARY"
+
+  test:  # portable engine + session + real-data syllable corpus + fuzz tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - run: sh tools/fetch-test-data.sh   # without this the syllable corpus test SKIPs
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSENTYPE_VERSION=${{ needs.prepare.outputs.version }}
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
+
+  deb:  # native build per arch inside ubuntu:26.04 (no QEMU: the fuzz tests and fcitx5 integration test stay fast)
+    needs: [prepare, test]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: amd64, runner: ubuntu-24.04 }
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
+    container: ubuntu:26.04
+    permissions: { contents: read }
+    steps:
+      - name: Toolchain (git first so checkout does a real clone)
+        env: { DEBIAN_FRONTEND: noninteractive }
+        run: >
+          apt-get update && apt-get install -y --no-install-recommends git ca-certificates curl file perl
+          build-essential cmake ninja-build dpkg-dev fcitx5 libfcitx5core-dev libfcitx5utils-dev
+          libfcitx5config-dev fcitx5-modules-dev
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - name: Build, test, package, install + purge the .deb
+        run: sh tools/verify/deb.sh "${{ needs.prepare.outputs.version }}" "$PWD/dist"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with: { name: "deb-${{ matrix.arch }}", path: "dist/*.deb", if-no-files-found: error }
+
+  macos:  # universal .pkg + fallback .zip; Developer ID signing / notarization only when secrets exist
+    needs: [prepare, test]
+    runs-on: macos-latest
+    permissions: { contents: read }
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      HAVE_CERTS: ${{ secrets.MACOS_CERTS_P12 != '' && secrets.MACOS_APP_IDENTITY != '' && secrets.MACOS_PKG_IDENTITY != '' }}
+      HAVE_NOTARY: ${{ secrets.NOTARY_APPLE_ID != '' && secrets.NOTARY_TEAM_ID != '' && secrets.NOTARY_PASSWORD != '' }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - run: cmake -S . -B build -DSENTYPE_FRONTEND=macos -DSENTYPE_VERSION="$VERSION"
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
+      - name: Import Developer ID certificates (skipped without secrets)
+        if: env.HAVE_CERTS == 'true'
+        env:
+          MACOS_CERTS_P12: ${{ secrets.MACOS_CERTS_P12 }}
+          MACOS_CERTS_PASSWORD: ${{ secrets.MACOS_CERTS_PASSWORD }}
+        run: scripts/ci-import-macos-certs.sh
+      - name: Build pkg + zip
+        env:
+          SIGN_APP_IDENTITY: ${{ env.HAVE_CERTS == 'true' && secrets.MACOS_APP_IDENTITY || '' }}
+          SIGN_PKG_IDENTITY: ${{ env.HAVE_CERTS == 'true' && secrets.MACOS_PKG_IDENTITY || '' }}
+          NOTARY_APPLE_ID: ${{ env.HAVE_NOTARY == 'true' && secrets.NOTARY_APPLE_ID || '' }}
+          NOTARY_TEAM_ID: ${{ env.HAVE_NOTARY == 'true' && secrets.NOTARY_TEAM_ID || '' }}
+          NOTARY_PASSWORD: ${{ env.HAVE_NOTARY == 'true' && secrets.NOTARY_PASSWORD || '' }}
+        run: frontends/macos/packaging/build-pkg.sh build/frontends/macos/SenType.app "$VERSION" dist
+      - name: Inspect pkg
+        run: |
+          pkgutil --check-signature "dist/SenType-$VERSION.pkg" || true
+          pkgutil --payload-files "dist/SenType-$VERSION.pkg" | grep -v '/\._' | head -20
+          pkgutil --expand "dist/SenType-$VERSION.pkg" "$RUNNER_TEMP/expanded"
+          lipo -archs build/frontends/macos/SenType.app/Contents/MacOS/SenType
+      - name: Remove signing keychain
+        if: always() && env.HAVE_CERTS == 'true'
+        run: security delete-keychain "$KEYCHAIN_PATH" || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with: { name: macos, path: "dist/*", if-no-files-found: error }
+
+  windows:  # MSVC x64 + x86 DLLs -> NSIS installer, smoke-tested with a real silent install/uninstall
+    needs: [prepare, test]
+    runs-on: windows-latest
+    permissions: { contents: read }
+    defaults: { run: { shell: bash } }
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - name: Build + test x64 and x86
+        run: |
+          for pair in x64:x64 x86:Win32; do
+            dir="build-${pair%%:*}"; arch="${pair##*:}"
+            cmake -S . -B "$dir" -A "$arch" -DSENTYPE_FRONTEND=windows -DSENTYPE_VERSION="$VERSION"
+            cmake --build "$dir" --config Release
+            ctest --test-dir "$dir" -C Release --output-on-failure
+          done
+      - name: Install NSIS
+        run: choco install nsis --version=3.10 -y --no-progress
+      - name: Build installer
+        run: |
+          mkdir -p dist
+          root="$(cygpath -m "$PWD")"
+          "/c/Program Files (x86)/NSIS/makensis.exe" -V2 -DVERSION="$VERSION" -DVERSION_BASE="$(tr -d '[:space:]' < VERSION)" \
+            -DDLL_X64="$root/build-x64/frontends/windows/Release/sentype-tsf.dll" \
+            -DDLL_X86="$root/build-x86/frontends/windows/Release/sentype-tsf.dll" \
+            -DOUTFILE="$root/dist/SenType-$VERSION-setup.exe" frontends/windows/installer/sentype.nsi
+      - name: Silent install / reinstall / uninstall smoke test
+        shell: pwsh
+        run: tools/verify/windows-installer-smoke.ps1 -Setup "dist/SenType-$env:VERSION-setup.exe" -Version $env:VERSION
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with: { name: windows, path: "dist/*.exe", if-no-files-found: error }
+
+  checksums:
+    needs: [deb, macos, windows]
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with: { path: dist, merge-multiple: true }
+      - name: SHA256SUMS
+        working-directory: dist
+        run: |
+          files=(*)
+          [ "${#files[@]}" -eq 5 ] || { echo "::error::expected 5 installers (2 deb, pkg, zip, exe), got: ${files[*]}"; exit 1; }
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with: { name: release-files, path: dist/*, if-no-files-found: error }
+
+  publish:  # tag pushes only
+    if: github.ref_type == 'tag'
+    needs: checksums
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with: { name: release-files, path: dist }
+      - name: Create GitHub Release
+        run: |
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "SenType ${GITHUB_REF_NAME#v}" \
+            --notes "Installers are not code-signed unless stated here: expect a Gatekeeper / SmartScreen warning. Verify downloads with \`sha256sum -c SHA256SUMS\`. See docs/release.md." \
+            dist/*
