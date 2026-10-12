@@ -5,6 +5,7 @@
   <key>CFBundleDevelopmentRegion</key><string>en</string>
   <key>CFBundleExecutable</key><string>SenType</string>
   <key>CFBundleIdentifier</key><string>com.sentype.inputmethod.SenType</string>
+  <key>CFBundleIconFile</key><string>sentype</string>
   <key>CFBundleName</key><string>SenType</string>
   <key>CFBundleDisplayName</key><string>SenType</string>
   <key>CFBundlePackageType</key><string>APPL</string>
@@ -30,6 +31,9 @@
         <key>tsInputModeDefaultStateKey</key><true/>
         <key>tsInputModeIsVisibleKey</key><true/>
         <key>tsInputModePrimaryInputModeKey</key><true/>
+        <key>tsInputModeMenuIconFileKey</key><string>sentype-menu.pdf</string>
+        <key>tsInputModePaletteIconFileKey</key><string>sentype-menu.pdf</string>
+        <key>TISIconIsTemplate</key><true/>
       </dict>
     </dict>
     <key>tsVisibleInputModeOrderedArrayKey</key>
