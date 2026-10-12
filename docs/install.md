@@ -54,6 +54,9 @@ Chỉ thử với Chrome trên cấu hình này; các ứng dụng khác chưa t
 - Test tích hợp dùng Fcitx5 thật nhưng với `testfrontend`, không có màn hình: không thay cho thử tay
   trong ứng dụng thật.
 - GNOME chưa thử.
+- Icon: `.deb` cài `sentype.png` (16-256px) + `sentype.svg` + `sentype-symbolic.svg` vào
+  `/usr/share/icons/hicolor`, `Icon=sentype` trong `inputmethod/sentype.conf`; `postinst` chạy
+  `gtk-update-icon-cache`. Khay Fcitx5 hiển thị phụ thuộc theme/panel (chưa xem trên desktop thật).
 
 ## macOS (11+)
 
@@ -66,7 +69,11 @@ frontends/macos/install.sh build/frontends/macos/SenType.app   # chép vào ~/Li
 **SenType**. Menu nguồn nhập (biểu tượng bàn phím trên menu bar) chọn Telex/VNI, Classic.
 Bản `build/SenType-macos.zip` ký ad-hoc: máy khác cần `xattr -dr com.apple.quarantine SenType.app`.
 
-Lỗi/giới hạn: chưa có icon (cần ảnh raster do chủ repo cung cấp); chỉ kiểm tra build, `codesign
+Icon: `CFBundleIconFile` (`sentype.icns`) cho bundle; icon nguồn nhập trên menu bar là
+`sentype-menu.pdf` (template đơn sắc, `TISIconIsTemplate`, khai báo trong `Info.plist`). Cài đặt lại bản
+mới để đổi icon: chạy lại `install.sh`, đăng xuất/đăng nhập (macOS cache icon nguồn nhập).
+
+Lỗi/giới hạn: chỉ kiểm tra build, `codesign
 --verify` và test dịch phím, **chưa** thử gõ thật trong ứng dụng ở lần kiểm tra gần nhất; không có
 Apple Developer ID nên không notarize.
 
@@ -77,6 +84,11 @@ và `x86\sentype-tsf.dll` cạnh `install.bat`, chạy **Run as administrator** 
 Settings -> Time & language -> Language & region -> Vietnamese -> Language options -> Add a keyboard ->
 **SenType**. Gỡ: `uninstall.bat`. Kiểu gõ: registry `HKCU\Software\SenType`, `Method` = `Telex`|`VNI`,
 `TonePlacement` = `Modern`|`Classic` (không phân biệt hoa/thường).
+
+Icon: nhúng trong DLL (resource `101`, file `.ico` 16-256px) và ghi vào profile (`IconFile` = đường dẫn DLL,
+`IconIndex` = `-101`): Windows 8+ lấy icon này cho chỉ báo nhập (khu vực thông báo) và danh sách bàn phím.
+Thêm nút language bar (`ITfLangBarItemButton`, tooltip "SenType", menu Telex/VNI ghi `HKCU\Software\SenType\Method`)
+cho language bar cổ điển/desktop. Add/Remove Programs dùng icon của DLL.
 
 Lỗi/giới hạn: chỉ kiểm tra biên dịch chéo mingw + `regsvr32` dưới wine; **chưa** thử trên Windows thật
 (TSF composition, ứng dụng UWP/elevated). DLL chưa ký số nên SmartScreen có thể cảnh báo.

@@ -50,6 +50,14 @@ Thứ tự áp dụng `KeyResult`: macOS/Windows chèn `commit` trước rồi c
 preedit trước rồi `commitString` (Fcitx cần preedit rỗng trước khi commit). `Session` không bao giờ trả
 đồng thời `commit` và `preedit` khác rỗng nên thứ tự này không ảnh hưởng kết quả.
 
+## Icon
+
+Một nguồn SVG duy nhất: `tools/icons/sentype.svg` (màu: chữ S + dấu sắc, nền xanh) và `sentype-mono.svg`
+(đơn sắc, dùng làm template macOS / symbolic Linux). `sh tools/icons/build-icons.sh` (Docker, librsvg)
+sinh và commit: `frontends/windows/res/sentype.ico`, `frontends/macos/Resources/{sentype.icns,
+sentype-menu.pdf,sentype-menu.png}`, `frontends/linux-fcitx5/icons/{N}x{N}/apps, scalable/apps` (PNG + SVG), và ảnh xem
+trước `tools/icons/preview/`. Build thường không cần công cụ này. Sửa icon: đổi SVG, chạy lại script, commit.
+
 ## Cấu trúc thư mục
 
 ```
@@ -57,5 +65,5 @@ core/include/sentype/   engine.hpp  session.hpp  settings.hpp   API công khai
 core/src/               cài đặt (word-state, syllable-*, letter, engine, session, settings)
 core/tests/             engine-test  session-test  syllable-corpus-test  fuzz/  support/  data/
 frontends/*             adapter mỏng + test dịch phím
-tools/                  fetch-test-data.sh  diff/ (so sánh UniKey/Bamboo)  docker/
+tools/                  fetch-test-data.sh  diff/ (so sánh UniKey/Bamboo)  docker/  icons/ (nguồn SVG + script)
 ```
