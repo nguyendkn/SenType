@@ -11,8 +11,6 @@ target_compile_definitions(sentype-tsf PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_M
 target_link_libraries(sentype-tsf PRIVATE sentype-win-keys ole32 oleaut32 uuid advapi32 user32)
 if(MINGW)  # self-contained DLL: no libstdc++/libgcc/winpthread runtime DLLs to ship
   target_link_options(sentype-tsf PRIVATE -static -static-libgcc -static-libstdc++ -Wl,--kill-at)
-else()
-  set_property(TARGET sentype-tsf PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
 endif()
 
 add_executable(key-translation-test tests/key-translation-test.cpp)

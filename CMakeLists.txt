@@ -29,6 +29,9 @@ set_property(CACHE SENTYPE_FRONTEND PROPERTY STRINGS none linux-fcitx5 macos win
 
 if(MSVC)
   add_compile_options(/utf-8)  # sources contain UTF-8 Vietnamese literals
+  # One static CRT for every target (core libs, TSF DLL, tests): the DLL ships without the VC++ redistributable,
+  # and mixing /MD libs into a /MT DLL fails with LNK2038.
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 elseif(MINGW)
   add_link_options(-static)  # self-contained .exe/.dll: no libstdc++/libgcc/winpthread DLLs to ship
 endif()
