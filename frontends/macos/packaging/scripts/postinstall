@@ -1,0 +1,15 @@
+#!/bin/sh
+# Runs as root after the payload is copied to /Library/Input Methods.
+# $2 = install location. Never fail the install over cleanup.
+APP="$2/SenType.app"
+# A running old SenType keeps the previous binary in memory; it is relaunched on the next input-source use.
+pkill -x SenType 2>/dev/null || true
+xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
+# A copy from the old user-level install.sh would show up as a duplicate input source: remove it.
+USER_NAME="$(stat -f %Su /dev/console 2>/dev/null || true)"
+if [ -n "$USER_NAME" ] && [ "$USER_NAME" != root ]; then
+  USER_HOME="$(dscl . -read "/Users/$USER_NAME" NFSHomeDirectory 2>/dev/null | awk '{print $2}')"
+  OLD="$USER_HOME/Library/Input Methods/SenType.app"
+  if [ -n "$USER_HOME" ] && [ -d "$OLD" ]; then rm -rf "$OLD" && echo "removed old user-level install: $OLD"; fi
+fi
+exit 0

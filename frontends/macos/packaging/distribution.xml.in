@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+  <title>SenType @VERSION@</title>
+  <options customize="never" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+  <volume-check><allowed-os-versions><os-version min="11.0"/></allowed-os-versions></volume-check>
+  <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
+  <conclusion file="conclusion.html"/>
+  <pkg-ref id="@PKG_ID@"/>
+  <choices-outline><line choice="default"><line choice="@PKG_ID@"/></line></choices-outline>
+  <choice id="default"/>
+  <choice id="@PKG_ID@" visible="false"><pkg-ref id="@PKG_ID@"/></choice>
+  <pkg-ref id="@PKG_ID@" version="@VERSION@" onConclusion="none">SenType-component.pkg</pkg-ref>
+</installer-gui-script>
