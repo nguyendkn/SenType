@@ -3,6 +3,8 @@
 #include "key-translation.h"
 #include "settings.h"
 
+#include <new>
+
 LONG g_module_refs = 0;
 
 TextService::TextService() : session_(load_config()) { InterlockedIncrement(&g_module_refs); }
@@ -47,10 +49,34 @@ STDMETHODIMP TextService::ActivateEx(ITfThreadMgr* tm, TfClientId id, DWORD) {
                        &thread_sink_cookie_);
     source->Release();
   }
+  add_langbar_button();
   return S_OK;
 }
 
+void TextService::add_langbar_button() {
+  langbar_ = new (std::nothrow) LangBarButton([this](sentype::Method) { reload_config(); });
+  if (!langbar_) return;
+  ITfLangBarItemMgr* mgr = nullptr;
+  if (SUCCEEDED(thread_mgr_->QueryInterface(IID_ITfLangBarItemMgr, (void**)&mgr))) {
+    // Best effort: without the button the input method still works (profile icon stays).
+    mgr->AddItem(langbar_);
+    mgr->Release();
+  }
+}
+
+void TextService::remove_langbar_button() {
+  if (!langbar_) return;
+  ITfLangBarItemMgr* mgr = nullptr;
+  if (thread_mgr_ && SUCCEEDED(thread_mgr_->QueryInterface(IID_ITfLangBarItemMgr, (void**)&mgr))) {
+    mgr->RemoveItem(langbar_);
+    mgr->Release();
+  }
+  langbar_->detach();  // the language bar may still hold a reference for a moment
+  release(langbar_);
+}
+
 STDMETHODIMP TextService::Deactivate() {
+  remove_langbar_button();
   if (thread_mgr_) {
     ITfKeystrokeMgr* keys = nullptr;
     if (SUCCEEDED(thread_mgr_->QueryInterface(IID_ITfKeystrokeMgr, (void**)&keys))) {
@@ -107,13 +133,18 @@ STDMETHODIMP TextService::OnKeyDown(ITfContext* ic, WPARAM wp, LPARAM lp, BOOL* 
   return S_OK;
 }
 
-STDMETHODIMP TextService::OnSetFocus(ITfDocumentMgr*, ITfDocumentMgr*) {
+void TextService::reload_config() {
   if (comp_ && comp_ctx_) {
     ITfContext* ic = comp_ctx_;
     ic->AddRef();
     run_edit(ic, session_.flush(), TF_ES_ASYNCDONTCARE | TF_ES_READWRITE);
     ic->Release();
   }
+  session_.set_config(load_config());  // also picks up a Telex/VNI change made in another process
+}
+
+STDMETHODIMP TextService::OnSetFocus(ITfDocumentMgr*, ITfDocumentMgr*) {
+  reload_config();
   return S_OK;
 }
 

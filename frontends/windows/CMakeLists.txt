@@ -1,11 +1,13 @@
 # Windows TSF text service -> sentype-tsf.dll (build with MSVC or mingw-w64).
+enable_language(RC)  # res/sentype.rc: the icon (rc.exe on MSVC, windres on mingw)
 add_library(sentype-win-keys STATIC src/key-translation.cpp)
 target_include_directories(sentype-win-keys PUBLIC src)
 target_link_libraries(sentype-win-keys PUBLIC sentype-core)
 
 add_library(sentype-tsf SHARED
   src/dll-main.cpp src/text-service.cpp src/composition.cpp src/registration.cpp src/settings.cpp
-  sentype-tsf.def)
+  src/langbar-button.cpp res/sentype.rc sentype-tsf.def)
+target_include_directories(sentype-tsf PRIVATE res)  # lets the rc find sentype.ico
 set_target_properties(sentype-tsf PROPERTIES PREFIX "")  # sentype-tsf.dll, not libsentype-tsf.dll
 target_compile_definitions(sentype-tsf PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN)
 target_link_libraries(sentype-tsf PRIVATE sentype-win-keys ole32 oleaut32 uuid advapi32 user32)

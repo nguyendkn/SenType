@@ -90,6 +90,9 @@ jobs:
           foreach ($f in 'DllGetClassObject','DllCanUnloadNow','DllRegisterServer','DllUnregisterServer') {
             if ($out -notmatch $f) { throw "missing export $f" }
           }
+      - name: Check icon resource
+        shell: pwsh
+        run: tools/verify/check-dll-icon.ps1 build\frontends\windows\Release\sentype-tsf.dll
       - uses: actions/upload-artifact@v4
         with:
           name: sentype-windows-${{ matrix.arch }}

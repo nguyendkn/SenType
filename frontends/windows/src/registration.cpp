@@ -21,9 +21,7 @@ LSTATUS set_string(HKEY key, const wchar_t* name, const std::wstring& value) {
                         (DWORD)((value.size() + 1) * sizeof(wchar_t)));
 }
 
-HRESULT write_clsid_keys() {
-  wchar_t path[MAX_PATH];
-  if (!GetModuleFileNameW(g_instance, path, MAX_PATH)) return HRESULT_FROM_WIN32(GetLastError());
+HRESULT write_clsid_keys(const wchar_t* path) {
   const std::wstring base = L"Software\\Classes\\CLSID\\" + guid_string(CLSID_SenTypeTextService);
   HKEY key = nullptr;
   LSTATUS st = RegCreateKeyExW(HKEY_LOCAL_MACHINE, (base + L"\\InprocServer32").c_str(), 0, nullptr,
@@ -48,7 +46,10 @@ const GUID* const kCategories[] = {
 }  // namespace
 
 HRESULT register_service() {
-  HRESULT hr = write_clsid_keys();
+  wchar_t path[MAX_PATH];
+  const DWORD len = GetModuleFileNameW(g_instance, path, MAX_PATH);
+  if (!len || len >= MAX_PATH) return HRESULT_FROM_WIN32(GetLastError());
+  HRESULT hr = write_clsid_keys(path);
   if (FAILED(hr)) return hr;
 
   ITfInputProcessorProfiles* profiles = nullptr;
@@ -58,7 +59,8 @@ HRESULT register_service() {
   hr = profiles->Register(CLSID_SenTypeTextService);
   if (SUCCEEDED(hr))
     hr = profiles->AddLanguageProfile(CLSID_SenTypeTextService, kLangVietnamese, GUID_SenTypeProfile,
-                                      kServiceName, (ULONG)lstrlenW(kServiceName), L"", 0, 0);
+                                      kServiceName, (ULONG)lstrlenW(kServiceName), path, len,
+                                      (ULONG)(-kIconResourceId));  // icon = resource id in this DLL
   // Make the profile selectable right away (Wine defaults it to disabled; best effort).
   if (SUCCEEDED(hr))
     profiles->EnableLanguageProfile(CLSID_SenTypeTextService, kLangVietnamese, GUID_SenTypeProfile,

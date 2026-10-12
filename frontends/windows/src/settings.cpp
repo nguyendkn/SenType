@@ -26,3 +26,9 @@ sentype::Config load_config() {
   cfg.tone_style = sentype::parse_tone_style(reg_string(L"TonePlacement"));
   return cfg;
 }
+
+void save_method(sentype::Method method) {
+  const std::wstring value = method == sentype::Method::Vni ? L"VNI" : L"Telex";
+  RegSetKeyValueW(HKEY_CURRENT_USER, L"Software\\SenType", L"Method", REG_SZ, value.c_str(),
+                  (DWORD)((value.size() + 1) * sizeof(wchar_t)));
+}

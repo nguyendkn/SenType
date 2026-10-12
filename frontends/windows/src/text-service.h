@@ -2,6 +2,7 @@
 #pragma once
 
 #include "com-util.h"
+#include "langbar-button.h"
 #include "sentype/session.hpp"
 
 class TextService : public ITfTextInputProcessorEx,
@@ -45,6 +46,9 @@ class TextService : public ITfTextInputProcessorEx,
   HRESULT apply(TfEditCookie ec, ITfContext* ic, const sentype::KeyResult& r);
   HRESULT show_text(TfEditCookie ec, ITfContext* ic, const std::wstring& text);
   void end_composition(TfEditCookie ec);
+  void reload_config();  // commit the word in progress, then re-read the settings
+  void add_langbar_button();
+  void remove_langbar_button();
 
   ~TextService();
   LONG refs_ = 1;
@@ -54,4 +58,5 @@ class TextService : public ITfTextInputProcessorEx,
   sentype::Session session_;
   ITfComposition* comp_ = nullptr;
   ITfContext* comp_ctx_ = nullptr;  // context that owns comp_
+  LangBarButton* langbar_ = nullptr;
 };

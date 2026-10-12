@@ -21,6 +21,12 @@ for t in core/engine-test.exe core/session-test.exe frontends/windows/key-transl
 done
 echo "== wine fuzz-random-test (20000 sequences)"
 rc=0; wine64 core/fuzz-random-test.exe 20000 1 > /tmp/out.txt 2>&1 || rc=$?; echo "exit code $rc"; tail -1 /tmp/out.txt
+for arch in i686 x86_64; do
+  echo "== $arch DLL .rsrc (icon resource id 101 is embedded by windres)"
+  $arch-w64-mingw32-objdump -h /tmp/bw-$arch/frontends/windows/sentype-tsf.dll | grep -E "\.rsrc" || { echo "no .rsrc"; exit 1; }
+done
 wine64 regsvr32 /s frontends/windows/sentype-tsf.dll && echo "regsvr32 register: OK"
+echo "== profile icon registered (IconFile / IconIndex = -101)"
+wine64 reg query 'HKLM\Software\Microsoft\CTF\TIP' /s 2>&1 | grep -i -E "IconFile|IconIndex"
 wine64 reg query 'HKCR\CLSID\{3922582A-5FEA-483C-BF9B-BD6D5BE68439}\InprocServer32' 2>&1 | grep -E "REG_SZ"
 wine64 regsvr32 /s /u frontends/windows/sentype-tsf.dll && echo "regsvr32 unregister: OK"
