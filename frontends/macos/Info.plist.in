@@ -8,8 +8,8 @@
   <key>CFBundleName</key><string>SenType</string>
   <key>CFBundleDisplayName</key><string>SenType</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>@PROJECT_VERSION@</string>
-  <key>CFBundleVersion</key><string>@PROJECT_VERSION@</string>
+  <key>CFBundleShortVersionString</key><string>@SENTYPE_VERSION@</string>
+  <key>CFBundleVersion</key><string>@SENTYPE_VERSION@</string>
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>LSUIElement</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
