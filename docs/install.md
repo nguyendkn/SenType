@@ -1,5 +1,7 @@
 # Cài đặt và lỗi đã biết
 
+Bộ cài dựng sẵn (deb, pkg, setup.exe) nằm ở trang Releases, xem [release.md](release.md).
+
 Cách dùng chung: gõ Telex/VNI, từ hiện gạch chân (preedit), Space/dấu câu/Enter/mất focus thì commit.
 Chọn Telex/VNI và kiểu đặt dấu (`hoà` hay `hòa`) theo từng nền tảng bên dưới.
 

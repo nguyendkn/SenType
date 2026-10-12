@@ -9,12 +9,15 @@ là Enter. Ctrl/Alt/Cmd + phím: commit rồi để phím đi tiếp.
 core/                  C++20 thuần: Engine (gõ dấu), Session (chính sách phím), settings
 frontends/             linux-fcitx5 · macos (IMKit) · windows (TSF): adapter mỏng
 tools/                 fetch-test-data.sh, diff/ (so sánh UniKey/Bamboo), docker/
-docs/                  architecture.md · testing.md · install.md
+docs/                  architecture.md · testing.md · install.md · release.md
+scripts/               tag.sh (tạo tag release), ci-import-macos-certs.sh
+VERSION                MAJOR.MINOR, nguồn sự thật cho số phiên bản
 ```
 
 Thiết kế: [docs/architecture.md](docs/architecture.md). Kiểm thử (unit, corpus âm tiết, fuzz, so sánh
 UniKey/Bamboo, nguồn và giấy phép dữ liệu): [docs/testing.md](docs/testing.md). Cài đặt và lỗi đã biết
-theo từng nền tảng: [docs/install.md](docs/install.md).
+theo từng nền tảng: [docs/install.md](docs/install.md). Phát hành (tag, bộ cài deb/pkg/exe, checksum, ký số):
+[docs/release.md](docs/release.md).
 
 ## Dùng
 
@@ -35,7 +38,7 @@ cmake -S . -B build -DSENTYPE_FRONTEND=<linux-fcitx5|macos|windows>   # kèm m�
 ```
 
 CI: `.github/workflows/build.yml` (core trên 3 hệ điều hành, fuzz libFuzzer+sanitizer, Linux .deb,
-macOS bundle, Windows DLL x64/x86; so sánh UniKey/Bamboo chạy tay bằng `workflow_dispatch`).
+macOS bundle, Windows DLL x64/x86; so sánh UniKey/Bamboo chạy tay bằng `workflow_dispatch`). Release: `.github/workflows/release.yml`, chạy khi đẩy tag `v*` (`scripts/tag.sh`).
 
 ## Giấy phép
 
