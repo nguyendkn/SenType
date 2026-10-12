@@ -1,6 +1,6 @@
 // Real-data test: every syllable of an independent Vietnamese dictionary (hunspell vi_VN)
 // must be accepted by the validator and be typeable in Telex and VNI in several orders.
-// Usage: syllable-corpus-test <vi-syllables.txt> [english-words.txt]
+// Usage: syllable-corpus-test <vi-syllables.txt> [english-words.txt] [non-native.txt] [must-restore.txt]
 // Exit: 0 ok, 1 failures, 77 data missing (ctest SKIP).
 #include <cstdio>
 #include <cstdlib>
@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "sentype/engine.hpp"
+#include "support/test-util.hpp"
 #include "support/typing-orders.hpp"
 #include "syllable-validator.hpp"
 
@@ -19,16 +20,6 @@ using namespace sentype;
 using namespace sentype_test;
 
 namespace {
-
-std::vector<std::string> read_lines(const char* path) {
-  std::vector<std::string> v;
-  std::ifstream in(path);
-  for (std::string l; std::getline(in, l);) {
-    if (!l.empty() && l.back() == '\r') l.pop_back();
-    if (!l.empty() && l[0] != '#') v.push_back(l);
-  }
-  return v;
-}
 
 std::string type_word(Method m, ToneStyle st, const std::string& keys) {
   Engine e(Config{m, st, true});
@@ -39,24 +30,6 @@ std::string type_word(Method m, ToneStyle st, const std::string& keys) {
   }
   return e.commit_text();
 }
-
-size_t max_miss() { return std::getenv("SENTYPE_VERBOSE") ? 1000000 : 25; }
-
-struct Tally {
-  int total = 0, ok = 0;
-  std::vector<std::string> bad;
-  void add(bool good, const std::string& note) {
-    ++total;
-    if (good) ++ok;
-    else if (bad.size() < max_miss()) bad.push_back(note);
-  }
-  void print(const std::string& name) const {
-    std::printf("  %-34s %7d / %-7d %7.3f%%\n", name.c_str(), ok, total,
-                total ? 100.0 * ok / total : 100.0);
-    for (const std::string& b : bad) std::printf("      miss: %s\n", b.c_str());
-  }
-  bool failed() const { return ok != total; }
-};
 
 Letters to_letters(const Units& u) {
   Letters L;
