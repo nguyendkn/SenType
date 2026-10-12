@@ -1,0 +1,12 @@
+#!/bin/sh
+# Fcitx5 loads addons at start-up, so a running Fcitx5 needs a restart to see SenType.
+set -e
+if [ "$1" = "configure" ]; then
+  cat <<'MSG'
+SenType installed. Next steps:
+  1. im-config -n fcitx5          (make Fcitx5 the default input method), then log out and in
+  2. fcitx5-configtool            Input Method -> untick "Only Show Current Language" -> SenType -> add
+  Already running Fcitx5? Restart it:  fcitx5 -r
+MSG
+fi
+exit 0
