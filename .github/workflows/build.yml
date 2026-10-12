@@ -81,8 +81,15 @@ jobs:
       - run: cmake --build build --config Release
       - run: ctest --test-dir build -C Release --output-on-failure
       - name: Check exports
-        shell: cmd
-        run: dumpbin /exports build\frontends\windows\Release\sentype-tsf.dll
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC" -Recurse -Filter dumpbin.exe | Where-Object { $_.FullName -match 'Hostx64\\x64' } | Select-Object -First 1
+          $out = & $dumpbin.FullName /exports build\frontends\windows\Release\sentype-tsf.dll | Out-String
+          Write-Host $out
+          foreach ($f in 'DllGetClassObject','DllCanUnloadNow','DllRegisterServer','DllUnregisterServer') {
+            if ($out -notmatch $f) { throw "missing export $f" }
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: sentype-windows-${{ matrix.arch }}
