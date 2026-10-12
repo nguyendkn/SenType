@@ -2,20 +2,27 @@
 
 #include <windows.h>
 
+#include <string>
+
+#include "sentype/settings.hpp"
+
 namespace {
-bool reg_string_is(const wchar_t* name, const wchar_t* expected) {
+// Registry value HKCU\Software\SenType\<name> as narrow ASCII ("" when missing).
+std::string reg_string(const wchar_t* name) {
   wchar_t buf[16] = {};
   DWORD size = sizeof(buf) - sizeof(wchar_t);
   if (RegGetValueW(HKEY_CURRENT_USER, L"Software\\SenType", name, RRF_RT_REG_SZ, nullptr, buf,
                    &size) != ERROR_SUCCESS)
-    return false;
-  return lstrcmpiW(buf, expected) == 0;
+    return "";
+  std::string out;
+  for (const wchar_t* p = buf; *p; ++p) out += *p < 0x80 ? static_cast<char>(*p) : '?';
+  return out;
 }
 }  // namespace
 
 sentype::Config load_config() {
   sentype::Config cfg;
-  if (reg_string_is(L"Method", L"VNI")) cfg.method = sentype::Method::Vni;
-  if (reg_string_is(L"TonePlacement", L"Classic")) cfg.tone_style = sentype::ToneStyle::Classic;
+  cfg.method = sentype::parse_method(reg_string(L"Method"));
+  cfg.tone_style = sentype::parse_tone_style(reg_string(L"TonePlacement"));
   return cfg;
 }

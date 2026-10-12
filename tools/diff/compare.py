@@ -30,6 +30,7 @@ def main(d, dictionary, exclusions):
     refs = {n: read(os.path.join(d, n + ".txt")) for n in ("unikey", "bamboo")}
     assert len(inputs) == len(sentype) == len(refs["unikey"]) == len(refs["bamboo"]), "length mismatch"
 
+    rules = collections.Counter()
     table = collections.defaultdict(collections.Counter)  # (ref, label) -> category counts
     samples = collections.defaultdict(list)
     for name, out in refs.items():
@@ -39,9 +40,10 @@ def main(d, dictionary, exclusions):
                     table[(name, label)]["same"] += 1
                     continue
                 other = b if name == "unikey" else u
-                cat = classify(name, method, keys, s, r, other)
+                cat, rule = classify(name, method, keys, s, r, other)
+                rules[(name, cat, rule)] += 1
                 table[(name, label)][cat] += 1
-                f.write("\t".join([cat, label, method, keys, "sentype=" + s, name + "=" + r]) + "\n")
+                f.write("\t".join([cat, label, method, keys, "sentype=" + s, name + "=" + r, rule]) + "\n")
                 if len(samples[(name, cat)]) < 12:
                     samples[(name, cat)].append((keys, s, r))
 
@@ -50,6 +52,15 @@ def main(d, dictionary, exclusions):
     for (name, label) in sorted(table):
         row = table[(name, label)]
         print("%-8s %-5s %8d" % (name, label, sum(row.values())) + "".join("%16d" % row[c] for c in cats))
+    for name in refs:
+        tot = collections.Counter()
+        for (n, _), row in table.items():
+            if n == name:
+                tot.update(row)
+        print("%-8s %-5s %8d" % (name, "ALL", sum(tot.values())) + "".join("%16d" % tot[c] for c in cats))
+    print()
+    for (name, cat, rule), n in sorted(rules.items()):
+        print("  %-8s %-16s %-26s %6d" % (name, cat, rule, n))
     print()
     for (name, cat), lst in sorted(samples.items()):
         print("[%s / %s] samples (keys -> sentype | ref):" % (name, cat))

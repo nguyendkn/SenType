@@ -18,6 +18,8 @@ set_property(CACHE SENTYPE_FRONTEND PROPERTY STRINGS none linux-fcitx5 macos win
 
 if(MSVC)
   add_compile_options(/utf-8)  # sources contain UTF-8 Vietnamese literals
+elseif(MINGW)
+  add_link_options(-static)  # self-contained .exe/.dll: no libstdc++/libgcc/winpthread DLLs to ship
 endif()
 
 # ASan + UBSan for every target (core, tests, fuzz): -DSENTYPE_SANITIZE=ON

@@ -63,7 +63,7 @@ static const NSRange kNoReplacement = {NSNotFound, NSNotFound};
 }
 
 - (void)activateServer:(id)sender {
-  _session->engine().set_config(sentype_load_config());  // picks up menu changes
+  _session->set_config(sentype_load_config());  // picks up menu changes
   [super activateServer:sender];
 }
 
@@ -95,14 +95,14 @@ static const NSRange kNoReplacement = {NSNotFound, NSNotFound};
 - (void)setMethod:(sentype::Method)method client:(id)client {
   [self commitComposition:client];
   sentype_save_method(method);
-  _session->engine().set_config(sentype_load_config());
+  _session->set_config(sentype_load_config());
 }
 
 - (void)toggleClassic:(id)sender {
   [self commitComposition:self.client];
   const bool classic = sentype_load_config().tone_style == sentype::ToneStyle::Classic;
   sentype_save_tone_style(classic ? sentype::ToneStyle::Modern : sentype::ToneStyle::Classic);
-  _session->engine().set_config(sentype_load_config());
+  _session->set_config(sentype_load_config());
 }
 
 @end

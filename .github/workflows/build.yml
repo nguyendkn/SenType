@@ -14,9 +14,33 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch test corpora (hunspell vi/en dictionaries; test-only, not shipped)
+        shell: bash
+        run: sh tools/fetch-test-data.sh
       - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build --config Release
+      # engine + session + real-data syllable test + seeded fuzz (200k sequences x2)
       - run: ctest --test-dir build -C Release --output-on-failure
+
+  fuzz:  # libFuzzer (clang) + ASan + UBSan: 30k executions from the seed corpus, plus sanitized random test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh tools/fetch-test-data.sh
+      - run: >
+          cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DSENTYPE_SANITIZE=ON -DSENTYPE_FUZZ=ON
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
+
+  differential:  # manual: SenType vs UniKey/Bamboo (clones the references; not part of normal CI)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: stable }
+      - run: sh tools/diff/run-diff.sh 20000 1
 
   linux:  # Fcitx5 addon + .deb (Ubuntu 24.04 runner: closest to 26.04; Docker 26.04 verified locally)
     runs-on: ubuntu-latest
@@ -25,6 +49,7 @@ jobs:
       - run: >
           sudo apt-get update && sudo apt-get install -y ninja-build libfcitx5core-dev
           libfcitx5utils-dev libfcitx5config-dev fcitx5-modules-dev fcitx5
+      - run: sh tools/fetch-test-data.sh
       - run: cmake -S . -B build -G Ninja -DSENTYPE_FRONTEND=linux-fcitx5
       - run: cmake --build build
       - run: ctest --test-dir build --output-on-failure

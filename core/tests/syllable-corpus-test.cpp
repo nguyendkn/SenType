@@ -126,12 +126,14 @@ int main(int argc, char** argv) {
         if (keys.empty()) continue;
         const Method m = vni ? Method::Vni : Method::Telex;
         const std::string a = type_word(m, ToneStyle::Modern, keys);
-        const std::string b = a == syl ? a : type_word(m, ToneStyle::Classic, keys);
-        if (vni == 0 && o == Order::ToneAtEnd) {
-          (a == syl ? (b == syl ? both : modern_only) : classic_only) += (a == syl || b == syl);
+        const std::string b = type_word(m, ToneStyle::Classic, keys);
+        if (vni == 0 && o == Order::ToneAtEnd) {  // which tone style does the dictionary use?
+          if (a == syl && b == syl) ++both;
+          else if (a == syl) ++modern_only;
+          else if (b == syl) ++classic_only;
         }
         t[std::string(vni ? "VNI " : "Telex ") + order_name(o)].add(
-            a == syl || b == syl, syl + " <- " + keys + " => " + a + " / " + b);
+            a == syl, syl + " <- " + keys + " => " + a);
       }
     }
     // Capitalised and ALL-CAPS typing (Shift held), Telex and VNI.
@@ -144,7 +146,7 @@ int main(int argc, char** argv) {
       const std::string ka = upper_keys(vni ? vni_keys(all, Order::ToneAtEnd) : telex_keys(all, Order::ToneAtEnd));
       const std::string ec = recompose(cap), ea = recompose(all);
       auto ok = [&](const std::string& keys, const std::string& want) {
-        return type_word(m, ToneStyle::Modern, keys) == want || type_word(m, ToneStyle::Classic, keys) == want;
+        return type_word(m, ToneStyle::Modern, keys) == want;  // the dictionary uses modern placement
       };
       t[std::string(vni ? "VNI " : "Telex ") + "Capitalised"].add(ok(kc, ec), ec + " <- " + kc);
       t[std::string(vni ? "VNI " : "Telex ") + "ALL CAPS"].add(ok(ka, ea), ea + " <- " + ka);

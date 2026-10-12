@@ -34,7 +34,7 @@ STDMETHODIMP TextService::ActivateEx(ITfThreadMgr* tm, TfClientId id, DWORD) {
   thread_mgr_ = tm;
   thread_mgr_->AddRef();
   client_id_ = id;
-  session_.engine().set_config(load_config());
+  session_.set_config(load_config());
 
   ITfKeystrokeMgr* keys = nullptr;
   if (SUCCEEDED(tm->QueryInterface(IID_ITfKeystrokeMgr, (void**)&keys))) {
@@ -90,9 +90,9 @@ STDMETHODIMP TextService::OnTestKeyDown(ITfContext*, WPARAM wp, LPARAM lp, BOOL*
   sentype::Key key;
   *eaten = FALSE;
   if (!make_key(wp, lp, &key)) return S_OK;
-  // While composing, every key must reach OnKeyDown so the word can be committed
-  // before the key passes through. Otherwise only plain characters may start a word.
-  *eaten = session_.composing() || (key.kind == sentype::Key::Kind::Char && !key.shortcut);
+  // While composing every key must reach OnKeyDown so the word is committed before the key
+  // passes through (the policy lives in Session::would_handle).
+  *eaten = session_.would_handle(key);
   return S_OK;
 }
 

@@ -15,17 +15,7 @@ bool is_modifier_vk(unsigned vk) {
 }
 
 sentype::Key translate_key(unsigned vk, char32_t ch, bool shortcut) {
-  sentype::Key key;
-  key.shortcut = shortcut;
-  if (vk == kVkBack) {
-    key.kind = sentype::Key::Kind::Backspace;
-  } else if (vk == kVkEscape) {
-    key.kind = sentype::Key::Kind::Escape;
-  } else if (ch >= 0x20 && ch < 0x7F) {
-    key.kind = sentype::Key::Kind::Char;
-    key.ch = ch;
-  }  // else Other: Enter, Tab, arrows, dead keys, non-ASCII
-  return key;
+  return sentype::make_key(vk == kVkBack, vk == kVkEscape, ch, shortcut);
 }
 
 }  // namespace sentype_win

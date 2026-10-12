@@ -45,7 +45,9 @@ void SenTypeEngine::setConfig(const fcitx::RawConfig& raw) {
 
 void SenTypeEngine::apply_config() {
   instance_->inputContextManager().foreach([this](fcitx::InputContext* ic) {
-    state(ic).engine.set_config(core_config());  // drops the word in progress
+    sentype::Session& session = state(ic).session;
+    apply(ic, session.flush());  // keep the word typed so far, then switch settings
+    session.set_config(core_config());
     return true;
   });
 }
@@ -68,60 +70,35 @@ void SenTypeEngine::show_preedit(fcitx::InputContext* ic, const std::string& tex
   ic->updateUserInterface(fcitx::UserInterfaceComponent::InputPanel);
 }
 
-void SenTypeEngine::flush(fcitx::InputContext* ic) {
-  sentype::Engine& eng = state(ic).engine;
-  if (eng.empty()) return;
-  const std::string text = eng.commit_text();
-  show_preedit(ic, "");
-  ic->commitString(text);
+// Fcitx needs the client preedit cleared before the final text is committed.
+void SenTypeEngine::apply(fcitx::InputContext* ic, const sentype::KeyResult& r) {
+  if (!r.consumed && r.commit.empty()) return;  // idle key passing through: nothing to update
+  show_preedit(ic, r.preedit);
+  if (!r.commit.empty()) ic->commitString(r.commit);
 }
 
 void SenTypeEngine::keyEvent(const fcitx::InputMethodEntry&, fcitx::KeyEvent& event) {
   if (event.isRelease()) return;
-  fcitx::InputContext* ic = event.inputContext();
-  sentype::Engine& eng = state(ic).engine;
   const fcitx::Key key = event.key();
   if (key.isModifier()) return;  // a lone Shift/Ctrl press must not end the word
 
-  // Ctrl/Alt/Super shortcuts: commit the word, then let the shortcut through.
-  if (key.states().testAny(fcitx::KeyStates{fcitx::KeyState::Ctrl, fcitx::KeyState::Alt,
-                                            fcitx::KeyState::Super})) {
-    flush(ic);
-    return;
-  }
-  if (key.sym() == FcitxKey_BackSpace) {
-    if (eng.empty()) return;
-    eng.backspace();
-    show_preedit(ic, eng.preedit());
-    event.filterAndAccept();
-    return;
-  }
-  if (key.sym() == FcitxKey_Escape) {  // Esc: give back exactly what was typed
-    if (eng.empty()) return;
-    const std::string raw = eng.raw_text();
-    eng.reset();
-    show_preedit(ic, "");
-    ic->commitString(raw);
-    event.filterAndAccept();
-    return;
-  }
-  const uint32_t ch = fcitx::Key::keySymToUnicode(key.sym());
-  if (ch >= 0x20 && ch < 0x7F && eng.feed(ch)) {
-    show_preedit(ic, eng.preedit());
-    event.filterAndAccept();
-    return;
-  }
-  // Space, punctuation, Enter, Tab, arrows...: commit the word and let the key
-  // reach the application unchanged (Enter therefore still submits the URL bar).
-  flush(ic);
+  const bool shortcut = key.states().testAny(
+      fcitx::KeyStates{fcitx::KeyState::Ctrl, fcitx::KeyState::Alt, fcitx::KeyState::Super});
+  const sentype::Key core_key = sentype::make_key(
+      key.sym() == FcitxKey_BackSpace, key.sym() == FcitxKey_Escape,
+      fcitx::Key::keySymToUnicode(key.sym()), shortcut);
+  fcitx::InputContext* ic = event.inputContext();
+  const sentype::KeyResult result = state(ic).session.on_key(core_key);
+  apply(ic, result);
+  if (result.consumed) event.filterAndAccept();
 }
 
 void SenTypeEngine::reset(const fcitx::InputMethodEntry&, fcitx::InputContextEvent& event) {
-  flush(event.inputContext());
+  apply(event.inputContext(), state(event.inputContext()).session.flush());
 }
 
 void SenTypeEngine::deactivate(const fcitx::InputMethodEntry&, fcitx::InputContextEvent& event) {
-  flush(event.inputContext());
+  apply(event.inputContext(), state(event.inputContext()).session.flush());
 }
 
 }  // namespace sentype_fcitx

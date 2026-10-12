@@ -1,4 +1,5 @@
-// Fcitx5 input method engine: composes in client preedit, never uses backspace hacks.
+// Fcitx5 input method adapter: translates Fcitx key events to sentype::Session (the shared key
+// policy) and shows the result in client preedit. No policy lives here; no backspace hacks.
 #pragma once
 
 #include <fcitx/addonfactory.h>
@@ -8,15 +9,15 @@
 #include <fcitx/instance.h>
 
 #include "sentype-config.h"
-#include "sentype/engine.hpp"
+#include "sentype/session.hpp"
 
 namespace sentype_fcitx {
 
-// One composing engine per input context (each text field has its own word).
+// One session per input context (each text field has its own word).
 class SenTypeState : public fcitx::InputContextProperty {
  public:
-  explicit SenTypeState(const sentype::Config& cfg) : engine(cfg) {}
-  sentype::Engine engine;
+  explicit SenTypeState(const sentype::Config& cfg) : session(cfg) {}
+  sentype::Session session;
 };
 
 class SenTypeEngine : public fcitx::InputMethodEngineV2 {
@@ -37,7 +38,7 @@ class SenTypeEngine : public fcitx::InputMethodEngineV2 {
   void apply_config();
   SenTypeState& state(fcitx::InputContext* ic) { return *ic->propertyFor(&factory_); }
   void show_preedit(fcitx::InputContext* ic, const std::string& text);
-  void flush(fcitx::InputContext* ic);  // commit the current word, if any
+  void apply(fcitx::InputContext* ic, const sentype::KeyResult& result);
 
   fcitx::Instance* instance_;
   SenTypeConfig config_;

@@ -98,10 +98,15 @@ void run(Instance& instance) {
       d.uuid, Key(FcitxKey_c, KeyStates{KeyState::Ctrl}), false);
   check(!ctrl, "Ctrl+C passes through");
 
-  d.type("Vieet");  // focus-out commits the word
-  d.expect_commit("Viêt");
+  d.type("Vieejt");  // focus-out commits the word
+  d.expect_commit("Việt");
   d.ic()->focusOut();
   check(d.preedit().empty(), "preedit cleared on focus out");
+
+  d.ic()->focusIn();
+  d.type("Vieet");  // toneless stop coda is not a syllable: every key comes back
+  d.expect_commit("Vieet");
+  d.ic()->focusOut();
 
   d.ic()->focusIn();
   d.type("window");  // focus-out must commit the spellchecked word exactly once
