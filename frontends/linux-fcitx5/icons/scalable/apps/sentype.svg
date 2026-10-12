@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>SenType</title>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#0E7C66"/>
+  <!-- bold "S" -->
+  <path d="M43 22C43 14 21 12 21 24C21 35 43 31 43 44C43 55 20 54 19 45" fill="none"
+        stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- tone mark (sac) over the S -->
+  <path d="M41 11L48 5" fill="none" stroke="#FFD166" stroke-width="5" stroke-linecap="round"/>
+</svg>

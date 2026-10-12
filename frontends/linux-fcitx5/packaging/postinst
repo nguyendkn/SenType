@@ -2,6 +2,9 @@
 # Fcitx5 loads addons at start-up, so a running Fcitx5 needs a restart to see SenType.
 set -e
 if [ "$1" = "configure" ]; then
+  if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+  fi
   cat <<'MSG'
 SenType installed. Next steps:
   1. im-config -n fcitx5          (make Fcitx5 the default input method), then log out and in
