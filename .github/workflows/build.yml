@@ -1,0 +1,63 @@
+name: sentype
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  core:  # platform-neutral engine + session tests on every OS
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build --config Release
+      - run: ctest --test-dir build -C Release --output-on-failure
+
+  linux:  # Fcitx5 addon + .deb (Ubuntu 24.04 runner: closest to 26.04; Docker 26.04 verified locally)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: >
+          sudo apt-get update && sudo apt-get install -y ninja-build libfcitx5core-dev
+          libfcitx5utils-dev libfcitx5config-dev fcitx5-modules-dev fcitx5
+      - run: cmake -S . -B build -G Ninja -DSENTYPE_FRONTEND=linux-fcitx5
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
+      - run: cpack -G DEB --config CPackConfig.cmake
+        working-directory: build
+      - uses: actions/upload-artifact@v4
+        with: { name: sentype-deb, path: "build/*.deb" }
+
+  macos:  # InputMethodKit bundle, universal, ad-hoc signed
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build -DSENTYPE_FRONTEND=macos
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
+      - run: codesign --verify --deep --strict build/frontends/macos/SenType.app
+      - uses: actions/upload-artifact@v4
+        with: { name: sentype-macos, path: build/SenType-macos.zip }
+
+  windows:  # TSF DLL, MSVC x64 + x86
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64, Win32]
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build -A ${{ matrix.arch }} -DSENTYPE_FRONTEND=windows
+      - run: cmake --build build --config Release
+      - run: ctest --test-dir build -C Release --output-on-failure
+      - name: Check exports
+        shell: cmd
+        run: dumpbin /exports build\frontends\windows\Release\sentype-tsf.dll
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sentype-windows-${{ matrix.arch }}
+          path: build/frontends/windows/Release/sentype-tsf.dll

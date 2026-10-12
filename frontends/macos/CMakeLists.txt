@@ -1,0 +1,28 @@
+# macOS InputMethodKit frontend -> SenType.app (universal, ad-hoc signed).
+set(CMAKE_OBJCXX_STANDARD 20)
+
+add_library(sentype-mac-keys STATIC src/key-translation.cpp)
+target_include_directories(sentype-mac-keys PUBLIC src)
+target_link_libraries(sentype-mac-keys PUBLIC sentype-core)
+
+add_executable(SenType MACOSX_BUNDLE
+  src/main.mm src/sentype-input-controller.mm src/sentype-settings.mm)
+target_compile_options(SenType PRIVATE -fobjc-arc)
+target_link_libraries(SenType PRIVATE sentype-mac-keys "-framework Cocoa" "-framework InputMethodKit")
+configure_file(Info.plist.in ${CMAKE_CURRENT_BINARY_DIR}/Info.plist @ONLY)
+set_target_properties(SenType PROPERTIES
+  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/Info.plist
+  OUTPUT_NAME SenType)
+
+# Ad-hoc signature (no developer account needed; Gatekeeper still flags downloads).
+add_custom_command(TARGET SenType POST_BUILD
+  COMMAND codesign --force --sign - --timestamp=none $<TARGET_BUNDLE_DIR:SenType>
+  COMMAND plutil -lint $<TARGET_BUNDLE_DIR:SenType>/Contents/Info.plist)
+
+add_custom_target(sentype-mac-zip ALL
+  COMMAND ditto -c -k --keepParent $<TARGET_BUNDLE_DIR:SenType> ${CMAKE_BINARY_DIR}/SenType-macos.zip
+  DEPENDS SenType)
+
+add_executable(key-translation-test tests/key-translation-test.cpp)
+target_link_libraries(key-translation-test PRIVATE sentype-mac-keys)
+add_test(NAME macos-key-translation COMMAND key-translation-test)

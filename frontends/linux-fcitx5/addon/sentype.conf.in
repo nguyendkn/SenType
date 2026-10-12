@@ -1,0 +1,8 @@
+[InputMethod]
+Name=SenType
+Name[vi]=SenType (Tiếng Việt)
+Icon=input-keyboard
+Label=Vi
+LangCode=vi
+Addon=sentype
+Configurable=True

@@ -1,0 +1,9 @@
+[Addon]
+Name=sentype
+Name[vi]=SenType
+Category=InputMethod
+Type=SharedLibrary
+Library=libsentype
+Version=@PROJECT_VERSION@
+OnDemand=True
+Configurable=True

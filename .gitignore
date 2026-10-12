@@ -1,0 +1,7 @@
+build/
+build-*/
+*.deb
+_CPack_Packages/
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
