@@ -117,6 +117,10 @@ bool is_valid_syllable(const Letters& letters, int tone) {
   if (!in(kInitials, init) || !in(kCodas, coda)) return false;
   if (!initial_fits(init, nuc.front()) || !glide_fits(init, nuc) || !nucleus_fits(nuc, !coda.empty())) return false;
   if (nuc == U"oo" && coda != U"ng" && coda != U"c") return false;
+  // Rare nuclei take few codas (hunspell vi_VN): "yt", "yn" yes; "yc", "oem", "uơ" after r no.
+  if (nuc == U"y" && coda != U"" && coda != U"nh" && coda != U"t") return false;
+  if (nuc == U"oe" && coda != U"" && coda != U"n" && coda != U"t") return false;
+  if (nuc == U"uơ" && init != U"" && init != U"h" && init != U"kh" && init != U"th" && init != U"qu") return false;
   if (coda == U"ch" || coda == U"nh") {
     const char32_t last = nuc.back();
     if (!(last == U'a' || last == U'e' || last == U'ê' || last == U'i' || last == U'y')) {

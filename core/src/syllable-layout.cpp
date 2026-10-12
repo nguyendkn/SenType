@@ -11,7 +11,7 @@ Layout analyze(const Letters& L) {
   Layout lay{L.size(), L.size()};
   for (size_t i = 0; i < L.size(); ++i) {
     if (!is_vowel_base(L[i].base)) continue;
-    if (L[i].base == U'u' && i > 0 && L[i - 1].base == U'q') continue;
+    if (L[i].base == U'u' && L[i].mod == Mod::None && i > 0 && L[i - 1].base == U'q') continue;
     if (L[i].base == U'i' && i > 0 && L[i - 1].base == U'g' && i + 1 < L.size() &&
         is_vowel_base(L[i + 1].base)) {
       continue;

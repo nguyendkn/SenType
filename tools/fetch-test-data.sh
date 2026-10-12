@@ -1,10 +1,11 @@
 #!/bin/sh
-# Fetches the independent test corpora into <out-dir> (default build/test-data).
+# Fetches the independent test corpora into <out-dir> (default <repo>/build/test-data).
 # Nothing here is committed or shipped: the Vietnamese list is GPL-2 data (see docs/testing.md).
 #   vi-syllables.txt    6.6k lowercase Vietnamese syllables  <- LibreOffice dictionaries vi/vi_VN.dic
 #   english-words.txt   English words (negatives)            <- LibreOffice dictionaries en/en_US.dic
 set -eu
-OUT="${1:-build/test-data}"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+OUT="${1:-$ROOT/build/test-data}"
 COMMIT=32b006a2c22a4ac7e8ed3f03346f7b3d85a970a4   # LibreOffice/dictionaries, pinned
 BASE="https://raw.githubusercontent.com/LibreOffice/dictionaries/$COMMIT"
 VI_SHA256=21d59c8385d2ac8d708bc5dfe83b62753d7769a8b2c9c38d319ce5c57bfba0c7

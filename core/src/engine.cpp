@@ -73,8 +73,10 @@ bool Engine::backspace() {
   Impl& m = *impl_;
   if (m.raw.empty()) return false;
   const int last = static_cast<int>(m.state.letters().size()) - 1;
-  int vowels_left = 0;
-  for (int i = 0; i < last; ++i) vowels_left += is_vowel_base(m.state.letters()[i].base);
+  // Tone keys survive only while a nucleus is left to carry the tone ("qu" + tone has none).
+  const Letters rest(m.state.letters().begin(), m.state.letters().end() - 1);
+  const Layout rest_layout = analyze(rest);
+  const int vowels_left = static_cast<int>(rest_layout.nuc_end - rest_layout.nuc_begin);
   // Drop the last letter with the marks typed for it; tone keys go with the last vowel.
   std::vector<RawKey> kept;
   const std::vector<int>& owner = m.state.owner();

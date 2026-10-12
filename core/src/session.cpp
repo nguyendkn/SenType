@@ -2,6 +2,20 @@
 
 namespace sentype {
 
+Key make_key(bool backspace, bool escape, char32_t ch, bool shortcut) {
+  Key key;
+  key.shortcut = shortcut;
+  if (backspace) {
+    key.kind = Key::Kind::Backspace;
+  } else if (escape) {
+    key.kind = Key::Kind::Escape;
+  } else if (ch >= 0x20 && ch < 0x7F) {
+    key.kind = Key::Kind::Char;
+    key.ch = ch;
+  }  // else Other: Enter, Tab, arrows, dead keys, non-ASCII
+  return key;
+}
+
 KeyResult Session::flush() {
   KeyResult r;
   if (!engine_.empty()) r.commit = engine_.commit_text();

@@ -3,8 +3,11 @@
 #include <string>
 
 #include "sentype/session.hpp"
+#include "sentype/settings.hpp"
 
+using sentype::Config;
 using sentype::Key;
+using sentype::make_key;
 using sentype::KeyResult;
 using sentype::Session;
 
@@ -87,6 +90,35 @@ int main() {
     Client c;
     c.type("Vieejt,");
     check(c.text == "Việt" && c.passed == ",", "punctuation");
+  }
+  {  // make_key: the one place native facts become a Key.
+    check(make_key(false, false, 'a', false).kind == Key::Kind::Char, "make_key char");
+    check(make_key(false, false, 'a', true).shortcut, "make_key shortcut");
+    check(make_key(true, false, 'a', false).kind == Key::Kind::Backspace, "make_key backspace");
+    check(make_key(false, true, 0, false).kind == Key::Kind::Escape, "make_key escape");
+    check(make_key(false, false, '\r', false).kind == Key::Kind::Other, "make_key enter");
+    check(make_key(false, false, 0x1EA1, false).kind == Key::Kind::Other, "make_key non-ASCII");
+  }
+  {  // would_handle: idle sessions ignore everything but plain characters.
+    Session s;
+    check(!s.would_handle({Key::Kind::Other, 0, false}), "idle: Enter not handled");
+    check(!s.would_handle({Key::Kind::Char, 'a', true}), "idle: shortcut not handled");
+    check(s.would_handle({Key::Kind::Char, 'a', false}), "idle: plain char handled");
+    s.on_key({Key::Kind::Char, 'a', false});
+    check(s.would_handle({Key::Kind::Other, 0, false}), "composing: Enter must reach on_key");
+  }
+  {  // Settings vocabulary + switching config mid-session.
+    check(sentype::parse_method("VNI") == sentype::Method::Vni, "parse VNI");
+    check(sentype::parse_method("") == sentype::Method::Telex, "default Telex");
+    check(sentype::parse_tone_style("Classic") == sentype::ToneStyle::Classic, "parse Classic");
+    check(std::string(sentype::to_string(sentype::Method::Vni)) == "vni", "to_string");
+    Client c;
+    c.type("hoaf");
+    c.apply(c.session.flush(), 0);
+    c.session.set_config(Config{sentype::Method::Vni, sentype::ToneStyle::Classic, true});
+    c.type("hoa2");
+    c.apply(c.session.flush(), 0);
+    check(c.text == "hoàhòa", "config switch: modern then classic VNI");
   }
   std::printf("session tests, %d failure(s)\n", failures);
   return failures == 0 ? 0 : 1;

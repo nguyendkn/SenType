@@ -20,6 +20,19 @@ if(MSVC)
   add_compile_options(/utf-8)  # sources contain UTF-8 Vietnamese literals
 endif()
 
+# ASan + UBSan for every target (core, tests, fuzz): -DSENTYPE_SANITIZE=ON
+option(SENTYPE_SANITIZE "build with AddressSanitizer + UBSan" OFF)
+if(SENTYPE_SANITIZE AND NOT MSVC)
+  add_compile_options(-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=address,undefined)
+endif()
+
+# libFuzzer target (clang only): instruments core too so the fuzzer is coverage guided.
+option(SENTYPE_FUZZ "build the libFuzzer target (clang only)" OFF)
+if(SENTYPE_FUZZ)
+  add_compile_options(-fsanitize=fuzzer-no-link)
+endif()
+
 enable_testing()
 add_subdirectory(core)
 

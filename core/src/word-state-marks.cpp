@@ -32,6 +32,21 @@ Step WordState::add_mark(const RawKey& k, int idx, std::u32string_view allowed, 
 
   if (plain.empty()) {
     if (marked >= 0) return undo_or_fallback(k, idx, letters_[marked].mod_key);
+    // A different mark key on an already marked vowel switches the mark: "oow" -> ơ, "awa" -> â.
+    for (size_t i = lay.nuc_end; i-- > lay.nuc_begin;) {
+      Letter& l = letters_[i];
+      if (allowed.find(l.base) == std::u32string_view::npos) continue;
+      if (l.mod != Mod::Hat && l.mod != Mod::Breve && l.mod != Mod::Horn) continue;
+      const Letters before = letters_;
+      l.mod = mod_for(l.base, kind);
+      l.mod_key = idx;
+      if (!nucleus_viable(letters_)) {
+        letters_ = before;
+        continue;
+      }
+      own(idx, static_cast<int>(i));
+      return {Act::Mark, -1};
+    }
     if (standalone && lay.nuc_begin == lay.nuc_end) {
       Letter l;
       l.base = U'u';
